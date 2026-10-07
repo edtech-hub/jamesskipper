@@ -204,7 +204,7 @@
         (banner || form).scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
         if (bad) setTimeout(function () { bad.focus({ preventScroll: true }); }, 300);
       }
-      function showPage(i) {
+      function showPage(i, moveFocus) {
         current = i;
         pages.forEach(function (p, idx) { p.hidden = idx !== i; });
         var pct = Math.round((i + 1) / pages.length * 100);
@@ -212,6 +212,23 @@
         if (bar) { bar.style.width = pct + "%"; bar.querySelector("span").textContent = pct + "%"; }
         var title = wrapper.querySelector(".gf_progressbar_title");
         if (title) title.textContent = "Step " + (i + 1) + " of " + pages.length + " - " + pages[i].getAttribute("data-title");
+        // Gravity Forms "Steps" indicator
+        wrapper.querySelectorAll(".gf_step").forEach(function (step, idx) {
+          step.classList.toggle("gf_step_active", idx === i);
+          step.classList.toggle("gf_step_completed", idx < i);
+        });
+        var say = wrapper.querySelector("[data-step-announce]");
+        if (say && moveFocus) say.textContent = "Step " + (i + 1) + " of " + pages.length + ": " + pages[i].getAttribute("data-title");
+        if (moveFocus) {
+          // Keep the form in view without jumping the page, then put the cursor in the first field.
+          if (wrapper.getBoundingClientRect().top < 0) wrapper.scrollIntoView({ block: "start" });
+          var first = pages[i].querySelector("input:not([type=radio]):not([type=checkbox]), textarea, input:checked, input");
+          if (first) first.focus({ preventScroll: true });
+        }
+      }
+      function goNext() {
+        if (validateScope(pages[current])) { if (banner) banner.hidden = true; showPage(current + 1, true); }
+        else fail(pages[current]);
       }
 
       if (pages.length) {
@@ -224,12 +241,22 @@
         form.addEventListener("click", function (e) {
           var next = e.target.closest(".gform_next_button");
           var prev = e.target.closest(".gform_previous_button");
-          if (next) {
-            if (validateScope(pages[current])) { if (banner) banner.hidden = true; showPage(current + 1); wrapper.scrollIntoView({ block: "start" }); }
-            else fail(pages[current]);
-          }
-          if (prev) { if (banner) banner.hidden = true; showPage(current - 1); }
+          if (next) goNext();
+          if (prev) { if (banner) banner.hidden = true; showPage(current - 1, true); }
         });
+        // One-tap step: picking a card with a mouse or finger moves on (keyboard users press Next).
+        var advanceTimer;
+        if (form.hasAttribute("data-autoadvance")) {
+          form.addEventListener("click", function (e) {
+            var card = e.target.closest(".gcard");
+            if (!card || e.detail === 0 || current === pages.length - 1) return;
+            var input = card.querySelector('input[type="radio"]');
+            if (!input || !pages[current].contains(input)) return;
+            var from = current;
+            clearTimeout(advanceTimer);
+            advanceTimer = setTimeout(function () { if (input.checked && current === from) goNext(); }, 260);
+          });
+        }
         showPage(0);
       }
 
@@ -248,12 +275,15 @@
         // Prototype: nothing is sent. To go live, post new FormData(form) to the form service here.
         var first = (form.querySelector('[name="name"]') || {}).value || "";
         var done = wrapper.querySelector(".gform_confirmation_wrapper");
+        done.querySelectorAll("[data-echo]").forEach(function (el) {
+          var field = form.querySelector('[name="' + el.getAttribute("data-echo") + '"]');
+          el.textContent = field ? field.value.trim() : "";
+        });
         var nameSlot = done.querySelector("[data-first-name]");
         if (nameSlot) nameSlot.textContent = first.trim().split(" ")[0] ? ", " + first.trim().split(" ")[0] : "";
         form.hidden = true;
         if (banner) banner.hidden = true;
-        var bar = wrapper.querySelector(".gf_progressbar_wrapper");
-        if (bar) bar.hidden = true;
+        wrapper.querySelectorAll(".gf_progressbar_wrapper, .gf_page_steps").forEach(function (el) { el.hidden = true; });
         done.hidden = false;
         done.scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
       });
@@ -279,6 +309,25 @@
     });
   }
 
+  /* Paint tips: highlight the topic in view and keep its pill visible in the scrolling bar. */
+  function tipsNav() {
+    var bar = document.querySelector(".tips-nav__inner");
+    if (!bar || !("IntersectionObserver" in window)) return;
+    var links = {};
+    bar.querySelectorAll('a[href^="#"]').forEach(function (a) { links[a.getAttribute("href").slice(1)] = a; });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        Object.keys(links).forEach(function (id) { links[id].removeAttribute("aria-current"); });
+        var a = links[e.target.id];
+        if (!a) return;
+        a.setAttribute("aria-current", "true");
+        bar.scrollTo({ left: a.offsetLeft - 20, behavior: reduceMotion ? "auto" : "smooth" });
+      });
+    }, { rootMargin: "-40% 0px -55% 0px" });
+    Object.keys(links).forEach(function (id) { var sec = document.getElementById(id); if (sec) io.observe(sec); });
+  }
+
   /* Mobile action bar appears once the main call-to-action has scrolled out of view. */
   function mobileActions() {
     var bar = document.querySelector(".mobile-actions");
@@ -302,6 +351,7 @@
     overlayMenu();
     megaMenu();
     mobileActions();
+    tipsNav();
     lightbox();
     reveal();
     document.querySelectorAll('input[type="tel"]').forEach(formatPhone);

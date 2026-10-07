@@ -6,6 +6,7 @@ Anything we could not confirm is shown inside a visible placeholder marker so th
 Run:  python3 tools/build_site.py <site-dir>
 """
 import hashlib, json, os, sys, time
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from urllib.parse import quote_plus
 
 # ---- CONFIG ----
@@ -404,8 +405,8 @@ ICON = {
     "not-sure": '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
 }
 # Hero box: only what the Facebook page supports. The quote page lists the placeholder services too.
-HERO_OPTIONS = [("interior-painting", "Interior", ""), ("exterior-painting", "Exterior", ""),
-                ("inside-and-out", "Inside and out", ""), ("not-sure", "Not sure yet", "")]
+HERO_OPTIONS = [("interior-painting", "Interior", "Walls, ceilings, trim"), ("exterior-painting", "Exterior", "Siding, trim, windows"),
+                ("inside-and-out", "Inside and out", "The whole house"), ("not-sure", "Not sure yet", "Tell us what you see")]
 QUOTE_OPTIONS = [("interior-painting", "Interior painting", "Walls, ceilings and trim", False),
                  ("exterior-painting", "Exterior painting", "Siding, trim and window frames", False),
                  ("commercial-painting", "Commercial painting", "Offices, shops, rental units", True),
@@ -424,7 +425,19 @@ def choice_card(input_type, v, l, desc="", is_ph=False):
 
 
 def hero_cards():
-    return f'<ul class="gchoice-cards">{"".join(choice_card("radio", v, l) for v, l, _ in HERO_OPTIONS)}</ul>'
+    return f'<ul class="gchoice-cards gchoice-cards--hero">{"".join(choice_card("radio", v, l, d) for v, l, d in HERO_OPTIONS)}</ul>'
+
+
+def steps(labels):
+    """Gravity Forms "Steps" progress indicator."""
+    items = "".join(f'<div class="gf_step{" gf_step_active" if i == 0 else ""}" role="listitem"><span class="gf_step_number">{i + 1}</span>'
+                    f'<span class="gf_step_label">{l}</span></div>' for i, l in enumerate(labels))
+    return (f'<div class="gf_page_steps" role="list" aria-label="Form steps">{items}</div>'
+            f'<p class="screen-reader-text" aria-live="polite" data-step-announce></p>')
+
+
+CONFIRM_ICON = '<span class="gform_confirmation_icon" aria-hidden="true"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>'
+BACK = '<button class="wp-element-button gform_previous_button" type="button">Back</button>'
 
 
 def quote_cards():
@@ -564,21 +577,28 @@ def home(root):
       </div>
       <div class="wp-block-column hero-form-col">
         <div class="quote-box">
-          <div class="quote-box__head"><h2 class="wp-block-heading">Request a quote</h2><p>Or call us at <a href="tel:{TEL}">{PHONE}</a></p></div>
+          <div class="quote-box__head"><h2 class="wp-block-heading">Request a quote</h2><p>Two quick steps. Or call <a href="tel:{TEL}">{PHONE}</a></p></div>
           <div class="gform_wrapper">
+            {steps(["The job", "Your details"])}
             <div class="gform_validation_errors" role="alert" hidden>There was a problem with your submission. Please review the fields below.</div>
-            <form method="post" novalidate>
-              <div class="gform_fields">
-                {gfield(lab("h-name", "Name"), '<input id="h-name" name="name" type="text" autocomplete="name" required>', True, True)}
-                {gfield(lab("h-phone", "Phone"), '<input id="h-phone" name="phone" type="tel" autocomplete="tel" required>', True, True)}
-                {gfield("What needs painting?", hero_cards(), True, group=True)}
+            <form method="post" novalidate data-autoadvance>
+              <div class="gform_page" data-title="The job">
+                <div class="gform_fields">
+                  {gfield("What needs painting?", hero_cards(), True, group=True)}
+                </div>
+                <div class="gform_page_footer"><button class="wp-element-button gform_next_button" type="button">Next {SVG["arrow"]}</button></div>
               </div>
-              <div class="gform_footer gform_footer--inline">
-                {gfield(lab("h-zip", "ZIP code"), '<input id="h-zip" name="zip" type="text" inputmode="numeric" maxlength="5" autocomplete="postal-code" required>', True)}
-                <button class="wp-element-button" type="submit">Get my quote</button>
+              <div class="gform_page" data-title="Your details" hidden>
+                <div class="gform_fields">
+                  {gfield(lab("h-name", "Name"), '<input id="h-name" name="name" type="text" autocomplete="name" required>', True)}
+                  {gfield(lab("h-phone", "Phone"), '<input id="h-phone" name="phone" type="tel" autocomplete="tel" required>', True, True, stack=False)}
+                  {gfield(lab("h-zip", "ZIP code"), '<input id="h-zip" name="zip" type="text" inputmode="numeric" maxlength="5" autocomplete="postal-code" required>', True, True, stack=False)}
+                </div>
+                <p class="gform_note">We'll only use these to get back to you about this job.</p>
+                <div class="gform_page_footer">{BACK}<button class="wp-element-button" type="submit">Get my quote</button></div>
               </div>
             </form>
-            <div class="gform_confirmation_wrapper" hidden><div class="gform_confirmation_message" role="status"><h3 class="wp-block-heading">Thanks<span data-first-name></span>! We got your request.</h3><p>We'll get back to you soon. Need us sooner? Call <a href="tel:{TEL}">{PHONE}</a>.</p></div></div>
+            <div class="gform_confirmation_wrapper" hidden><div class="gform_confirmation_message" role="status">{CONFIRM_ICON}<h3 class="wp-block-heading">Thanks<span data-first-name></span>! We got your request.</h3><p>We'll call you back at <strong data-echo="phone"></strong>. Need us sooner? Call <a href="tel:{TEL}">{PHONE}</a>.</p></div></div>
           </div>
         </div>
       </div>
@@ -744,36 +764,103 @@ def about(root):
 
 # ---------- Paint tips (from the client's Facebook posts, rewritten in plain words) ----------
 
-TIPS = [
-    ("Color", "Test colors under your own lights", "Fluorescent light is cool and pulls out the green or blue in a color. Incandescent bulbs are warm and bring out the red. Look at a sample in the room you're painting."),
-    ("Color", "Don't settle for white walls", "Unless white is the look you want. The right color adds depth and can make a plain room feel warm and comfortable."),
-    ("Color", "Small rooms can take bold color", "White doesn't always make a room look bigger. Bright, bold colors open a space more than dull shades. Paint the ceiling lighter than the walls to keep it airy."),
-    ("Color", "A calm bedroom", "Use several shades of one neutral color. The neutral keeps it restful, and the different shades give the room layers and depth."),
-    ("Outside", "Match the roof", "Slate, terra cotta, metal or clay: choose a color scheme that sits well with your roof so the house looks like one piece."),
-    ("Outside", "Let the house style guide you", "The architecture can steer your colors. A colonial home, for example, often looks right in a color from that period."),
-    ("Outside", "Water based or oil based", "Those are the two kinds of exterior paint. Oil based has the longest record for lasting and standing up to weather, and it goes on smooth."),
-    ("Outside", "Watch the window AC units", "They're a major cause of rotted sills and peeling paint around the frame and the siding below. With units in, plan to repaint more often."),
-    ("Prep", "Peeling siding? Check the primer", "Cracked, peeling paint on siding can come from using the wrong primer. Poor grip means the paint fails."),
-    ("Prep", "What primer does", "It sticks where paint alone might not, and it seals porous surfaces so the paint spreads and dries evenly."),
-    ("Prep", "Spackle is for walls, not trim", "Putty or spackle works on small cracks and dents in walls. It won't stick to wood trim."),
-    ("Finishes", "What eggshell means", "Close to flat, with more sheen. It washes better, which is why it's so common on interior walls."),
-    ("Finishes", "Oil-based paint, pros and cons", "Linseed or alkyd based. Harder to use and slower to dry than water-based acrylic, but the finish is tougher and can last for decades."),
-    ("Planning", "Buy a little extra", "On a big job, get a bit more paint than you think you need. If you run short it's on hand, and the rest is there for touch-ups."),
-    ("Businesses", "Brighter workspaces", "Bright white on ceilings and walls raises the light level in a building."),
+from tip_art import ART, LIGHT_DEMO
+
+TOPIC_ICON = {
+    "color": ICON["color-advice"],
+    "outside": ICON["exterior-painting"],
+    "prep": '<path d="m14.622 17.897-10.68-2.913"/><path d="M18.376 2.622a1 1 0 1 1 3.002 3.002L17.36 9.643a.5.5 0 0 0 0 .707l.944.944a2.41 2.41 0 0 1 0 3.408l-.944.944a.5.5 0 0 1-.707 0L8.354 7.348a.5.5 0 0 1 0-.707l.944-.944a2.41 2.41 0 0 1 3.408 0l.944.944a.5.5 0 0 0 .707 0z"/><path d="M9 8c-1.804 2.71-3.97 3.46-6.583 3.948a.507.507 0 0 0-.302.819l7.32 8.883a1 1 0 0 0 1.185.204C12.735 20.405 16 16.792 16 15"/>',
+    "finishes": '<path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/><path d="M2 13h15"/><path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"/>',
+}
+
+# (id, nav label, heading, photo, photo alt, intro, [(art, title, text)])
+TIP_SECTIONS = [
+    ("color", "Color", "Color", "tips-color", "Open paint sample pots in blues, whites, reds and yellows",
+     "Picking a color is the fun part. These help it look the way you pictured once it's on the wall.", [
+         ("light", "Test colors under your own lights", "Fluorescent light is cool and pulls out the green or blue in a color. Incandescent bulbs are warm and bring out the red. Look at a sample in the room you're painting."),
+         ("white", "Don't settle for white walls", "Unless white is the look you want. The right color adds depth and can make a plain room feel warm and comfortable."),
+         ("small", "Small rooms can take bold color", "White doesn't always make a room look bigger. Bright, bold colors open a space more than dull shades. Paint the ceiling lighter than the walls to keep it airy."),
+         ("bedroom", "A calm bedroom", "Use several shades of one neutral color. The neutral keeps it restful, and the different shades give the room layers and depth."),
+         ("office", "Brighter workspaces", "Bright white on ceilings and walls raises the light level in a building."),
+     ]),
+    ("outside", "Outside", "Outside the house", "tips-outside", "Red lap siding around a white window",
+     "Outside, the color has to work with things you can't easily change, like the roof and the style of the house.", [
+         ("roof", "Match the roof", "Slate, terra cotta, metal or clay: choose a color scheme that sits well with your roof so the house looks like one piece."),
+         ("style", "Let the house style guide you", "The architecture can steer your colors. A colonial home, for example, often looks right in a color from that period."),
+         ("ac", "Watch the window AC units", "They're a major cause of rotted sills and peeling paint around the frame and the siding below. With units in, plan to repaint more often."),
+     ]),
+    ("prep", "Prep", "Prep and planning", "prep", "Painter pressing tape along a wall before painting",
+     "Most paint problems start underneath. Get the prep right and the finish lasts.", [
+         ("peel", "Peeling siding? Check the primer", "Cracked, peeling paint on siding can come from using the wrong primer. Poor grip means the paint fails."),
+         ("layers", "What primer does", "It sticks where paint alone might not, and it seals porous surfaces so the paint spreads and dries evenly."),
+         ("spackle", "Spackle is for walls, not trim", "Putty or spackle works on small cracks and dents in walls. It won't stick to wood trim."),
+         ("extra", "Buy a little extra", "On a big job, get a bit more paint than you think you need. If you run short it's on hand, and the rest is there for touch-ups."),
+     ]),
+    ("finishes", "Finishes", "Paint and finishes", "tips-finishes", "Empty room with fresh gray walls and white trim",
+     "Sheen and paint type change how a wall looks, how it cleans and how long it holds up.", [
+         ("sheen", "What eggshell means", "Close to flat, with more sheen. It washes better, which is why it's so common on interior walls."),
+         ("wateroil", "Water based or oil based", "Those are the two kinds of exterior paint. Oil based has the longest record for lasting and standing up to weather, and it goes on smooth."),
+         ("oil", "Oil-based paint, pros and cons", "Linseed or alkyd based. Harder to use and slower to dry than water-based acrylic, but the finish is tougher and can last for decades."),
+     ]),
 ]
 
 
+def topic_icon(key):
+    return f'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{TOPIC_ICON[key]}</svg>'
+
+
+def tips_nav():
+    links = "".join(f'<a href="#{sid}">{topic_icon(sid)}{label}<span class="tips-nav__count">{len(tips)}</span></a>'
+                    for sid, label, _, _, _, _, tips in TIP_SECTIONS)
+    return f'<nav class="tips-nav has-global-padding" aria-label="Tip topics"><div class="tips-nav__inner wide">{links}</div></nav>'
+
+
+def light_demo():
+    opts = [("day", "Daylight"), ("cool", "Cool bulb"), ("warm", "Warm bulb")]
+    radios = "".join(f'<label><input type="radio" name="light" value="{v}"{" checked" if v == "day" else ""}><span>{l}</span></label>' for v, l in opts)
+    return f"""<section class="wp-block-group alignfull section has-global-padding" aria-labelledby="demo-title">
+  <div class="wp-block-columns alignwide wide is-layout-flex light-demo">
+    <div class="wp-block-column wp-reveal"><figure class="light-demo__figure">{LIGHT_DEMO}</figure></div>
+    <div class="wp-block-column wp-reveal"{reveal(1)}>
+      <span class="is-style-text-annotation">Try it</span>
+      <h2 class="wp-block-heading" id="demo-title">Same paint, different light</h2>
+      <p class="light-demo__lede">A color that looked right in the store can look different at home. Switch the light and watch the wall.</p>
+      <fieldset class="light-switch"><legend class="screen-reader-text">Light in the room</legend>{radios}</fieldset>
+      <p class="light-demo__tip">Our tip: put a sample on the wall you're painting and look at it under the lights you actually use.</p>
+    </div>
+  </div>
+</section>"""
+
+
 def paint_tips(root):
-    cards = "".join(
-        f'<article class="tip-card wp-reveal"{reveal(i % 3)}><span class="tip-topic">{t}</span><h3 class="wp-block-heading">{h}</h3><p>{p}</p></article>'
-        for i, (t, h, p) in enumerate(TIPS))
+    sections = []
+    for n, (sid, label, title, photo, alt, intro, tips) in enumerate(TIP_SECTIONS):
+        bg = " has-accent-5-background-color" if n % 2 == 0 else ""
+        cards = "".join(
+            f'<article class="wp-block-post tip-card wp-reveal" id="tip-{art}"{reveal(i % 2)}>'
+            f'<figure class="wp-block-post-featured-image tip-art">{ART[art]}</figure>'
+            f'<div class="tip-card__body"><h3 class="wp-block-post-title">{h}</h3><p>{t}</p></div></article>'
+            for i, (art, h, t) in enumerate(tips))
+        sections.append(f"""<section class="wp-block-group alignfull section has-global-padding tips-section{bg}" id="{sid}" aria-labelledby="{sid}-title">
+  <div class="tips-section__inner wide">
+    <div class="tips-section__head wp-reveal">
+      <figure class="wp-block-image tips-section__media">{img(root, photo, alt, "(min-width: 1000px) 320px, (min-width: 600px) 240px, 100vw")}</figure>
+      <div class="tips-section__text">
+        <span class="tips-section__count">{len(tips)} tips</span>
+        <h2 class="wp-block-heading" id="{sid}-title">{title}</h2>
+        <p>{intro}</p>
+      </div>
+    </div>
+    <div class="wp-block-post-template tips-list">{cards}</div>
+  </div>
+</section>""")
     return f"""
 {banner(root, "Paint tips", "Paint tips", "Advice we've shared on our Facebook page, all in one place.")}
-<section class="wp-block-group alignfull section has-global-padding">
-  <div class="wide">
-    <div class="tips-grid">{cards}</div>
-    <p class="tips-source wp-reveal">From posts on the <a href="{FACEBOOK}" target="_blank" rel="noopener">James Skipper Painting Facebook page</a>.</p>
-  </div>
+{tips_nav()}
+{light_demo()}
+{"".join(sections)}
+<section class="wp-block-group alignfull has-global-padding" style="padding-bottom:var(--wp--preset--spacing--40)">
+  <p class="tips-source wide">From posts on the <a href="{FACEBOOK}" target="_blank" rel="noopener">James Skipper Painting Facebook page</a>.</p>
 </section>
 {cta(root, "Have a question about your house?", "Call or send the form. We're happy to talk colors, primer and finishes.")}
 """
@@ -845,8 +932,7 @@ def contact(root):
 def quote(root):
     radio = lambda name, vals: "".join(f'<li><label class="gchoice"><input type="radio" name="{name}" value="{v}"> {v}</label></li>' for v in vals)
     checks = lambda name, vals: "".join(f'<li><label class="gchoice"><input type="checkbox" name="{name}" value="{v}"> {v}</label></li>' for v in vals)
-    prev_btn = '<button class="wp-element-button gform_previous_button" type="button">Previous</button>'
-    nav = lambda prev, nxt: f'<div class="gform_page_footer">{prev_btn if prev else ""}{nxt}</div>'
+    nav = lambda prev, nxt: f'<div class="gform_page_footer">{BACK if prev else ""}{nxt}</div>'
     nxt = '<button class="wp-element-button gform_next_button" type="button">Next</button>'
     sub = '<button class="wp-element-button" type="submit">Send request</button>'
     lede = 'Three quick steps. Prefer to talk? Call <a href="tel:' + TEL + '">' + PHONE + '</a>.'
@@ -856,7 +942,7 @@ def quote(root):
   <div class="quote-layout">
     <div class="form-panel">
       <div class="gform_wrapper">
-        <div class="gf_progressbar_wrapper"><p class="gf_progressbar_title">Step 1 of 3 - The job</p><div class="gf_progressbar" aria-hidden="true"><div class="gf_progressbar_percentage" style="width:33%"><span>33%</span></div></div></div>
+        {steps(["The job", "The property", "Your details"])}
         <div class="gform_validation_errors" role="alert" hidden>There was a problem with your submission. Please review the fields below.</div>
         <form method="post" novalidate>
           <div class="gform_page" data-title="The job">
@@ -885,7 +971,7 @@ def quote(root):
             {nav(True, sub)}
           </div>
         </form>
-        <div class="gform_confirmation_wrapper" hidden><div class="gform_confirmation_message" role="status"><h3 class="wp-block-heading">Thanks<span data-first-name></span>! Your request is in.</h3><p>We'll get back to you soon. Need us sooner? Call <a href="tel:{TEL}">{PHONE}</a>.</p></div></div>
+        <div class="gform_confirmation_wrapper" hidden><div class="gform_confirmation_message" role="status">{CONFIRM_ICON}<h3 class="wp-block-heading">Thanks<span data-first-name></span>! Your request is in.</h3><p>We'll call you back at <strong data-echo="phone"></strong>. Need us sooner? Call <a href="tel:{TEL}">{PHONE}</a>.</p></div></div>
       </div>
     </div>
     <aside class="widget-area" aria-label="Sidebar">
