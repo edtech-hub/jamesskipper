@@ -285,6 +285,7 @@
         if (banner) banner.hidden = true;
         wrapper.querySelectorAll(".gf_progressbar_wrapper, .gf_page_steps").forEach(function (el) { el.hidden = true; });
         done.hidden = false;
+        splat(wrapper.closest(".quote-box"));
         done.scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
       });
     });
@@ -307,6 +308,47 @@
         if (e.key === "Escape" && item.classList.contains("is-open")) { close(); btn.focus(); }
       });
     });
+  }
+
+  /* Hero quote box easter eggs: roll the roller for a new paint color; paint splats on submit. */
+  var PAINTS = [["Harbor Blue", "#4068ee", "#2b2f9a"], ["Chesapeake Teal", "#159a9c", "#0b4f6c"], ["Lagoon", "#1fa6d0", "#2457b3"],
+    ["Twilight Violet", "#7a66e0", "#2b2a7a"], ["Bayside Sage", "#4f9a7c", "#24524a"], ["Midnight Navy", "#34477f", "#0d1630"]];
+  function paintRoller() {
+    var box = document.querySelector(".quote-box");
+    var btn = box && box.querySelector(".quote-box__roller");
+    if (!btn) return;
+    var tag = box.querySelector(".quote-box__swatch"), i = 0, timer;
+    btn.addEventListener("click", function () {
+      i = (i + 1) % PAINTS.length;
+      box.style.setProperty("--qb-a", PAINTS[i][1]);
+      box.style.setProperty("--qb-b", PAINTS[i][2]);
+      btn.classList.remove("is-rolling"); void btn.offsetWidth; btn.classList.add("is-rolling");
+      tag.textContent = PAINTS[i][0];
+      tag.classList.add("is-shown");
+      clearTimeout(timer);
+      timer = setTimeout(function () { tag.classList.remove("is-shown"); }, 1400);
+    });
+  }
+  function splat(box) {
+    if (!box || reduceMotion) return;
+    var style = getComputedStyle(box);
+    var colors = [style.getPropertyValue("--qb-a").trim(), style.getPropertyValue("--qb-b").trim(), "#a9bcff", "#2fc4c4", "#8b7cf6"];
+    var blob = "M13 2c3 0 4 3 6 4s5 0 6 3-2 4-2 6 3 4 1 6-5 0-7 1-3 4-6 3-3-3-5-4-6 0-6-3 2-4 1-6-3-4-1-6 5-1 6-2 3-4 5-4z";
+    for (var n = 0; n < 14; n++) {
+      var el = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      el.setAttribute("viewBox", "0 0 26 26");
+      el.setAttribute("class", "qb-splat");
+      el.setAttribute("aria-hidden", "true");
+      el.innerHTML = '<path d="' + blob + '" fill="' + colors[n % colors.length] + '"/>';
+      var a = Math.random() * Math.PI * 2, d = 90 + Math.random() * 120, sz = 12 + Math.random() * 18;
+      el.style.left = "calc(50% - 13px)"; el.style.top = "40%";
+      el.style.width = sz + "px"; el.style.height = sz + "px";
+      el.style.setProperty("--dx", Math.cos(a) * d + "px");
+      el.style.setProperty("--dy", Math.sin(a) * d + "px");
+      el.style.setProperty("--rot", (Math.random() * 360 - 180) + "deg");
+      box.appendChild(el);
+      setTimeout(function (x) { return function () { x.remove(); }; }(el), 1200);
+    }
   }
 
   /* Paint tips: highlight the topic in view and keep its pill visible in the scrolling bar. */
@@ -352,6 +394,7 @@
     megaMenu();
     mobileActions();
     tipsNav();
+    paintRoller();
     lightbox();
     reveal();
     document.querySelectorAll('input[type="tel"]').forEach(formatPhone);

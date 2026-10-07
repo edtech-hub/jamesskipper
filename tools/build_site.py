@@ -577,7 +577,13 @@ def home(root):
       </div>
       <div class="wp-block-column hero-form-col">
         <div class="quote-box">
-          <div class="quote-box__head"><h2 class="wp-block-heading">Request a quote</h2><p>Two quick steps. Or call <a href="tel:{TEL}">{PHONE}</a></p></div>
+          <div class="quote-box__head">
+            <svg class="quote-box__stroke" viewBox="0 0 220 80" aria-hidden="true" focusable="false"><path d="M8 52c22-20 52-34 88-36 30-2 54 6 80 2 14-2 26-8 36-14-6 16-20 28-38 32-26 6-50-2-78 2-30 4-58 18-80 30-8 4-14-6-8-16z" fill="#fff"/></svg>
+            <button class="quote-box__roller" type="button" aria-label="Roll a new paint color" title="Go on, give it a roll">{SVG["roller"]}</button>
+            <div class="quote-box__title"><h2 class="wp-block-heading">Request a quote</h2><p>Two quick steps. Or call <a href="tel:{TEL}">{PHONE}</a></p></div>
+            <span class="quote-box__swatch" aria-live="polite"></span>
+            <svg class="quote-box__drips" viewBox="0 0 400 24" preserveAspectRatio="none" aria-hidden="true" focusable="false"><defs><linearGradient id="qb-drip" x1="0" x2="1" y1="0" y2="0"><stop offset="0" style="stop-color:var(--qb-a)"/><stop offset="1" style="stop-color:var(--qb-b)"/></linearGradient></defs><path fill="url(#qb-drip)" d="M0 0H400V5H362c-3 0-4 2-4 5s-2 4-4 4-4-1-4-4-1-5-4-5H308c-3 0-4 3-4 8s-2 8-5 8-5-3-5-8-1-8-4-8H170c-2 0-3 2-3 4s-2 4-4 4-4-2-4-4-1-4-3-4H80c-3 0-4 3-4 7s-2 6-5 6-5-2-5-6-1-7-4-7H0Z"/></svg>
+          </div>
           <div class="gform_wrapper">
             {steps(["The job", "Your details"])}
             <div class="gform_validation_errors" role="alert" hidden>There was a problem with your submission. Please review the fields below.</div>

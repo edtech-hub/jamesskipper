@@ -673,3 +673,45 @@ p { margin: 0; text-wrap: pretty; }
   .light-switch span { padding: 9px 6px; font-size: .88rem; text-align: center; }
 }
 .gform_confirmation_message a { white-space: nowrap; }
+
+/* Hero quote box, painted look (gradients requested by the user for this box) */
+.quote-box { --qb-a: #4068ee; --qb-b: #2b2f9a; position: relative; overflow: visible; border: 1px solid rgb(255 255 255 / .5); background: linear-gradient(180deg, #f3f6ff 0%, #ffffff 46%); box-shadow: 0 28px 70px rgb(8 14 40 / .45), 0 0 0 6px rgb(255 255 255 / .06); }
+.quote-box__head { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; overflow: visible; border-radius: 8px 8px 0 0; background: linear-gradient(90deg, var(--qb-a), var(--qb-b)); transition: background .5s ease; }
+.quote-box__title { position: relative; min-width: 0; }
+.quote-box__stroke { position: absolute; top: 4px; right: 6px; width: 170px; opacity: .1; pointer-events: none; }
+.quote-box__drips { position: absolute; top: 100%; right: 0; left: 0; width: 100%; height: 22px; margin-top: -1px; pointer-events: none; }
+.quote-box__drips path { transform-origin: top; animation: qb-drip 5s ease-in-out infinite; }
+@keyframes qb-drip { 0%, 70%, 100% { transform: scaleY(1); } 82% { transform: scaleY(1.25); } }
+.quote-box .gform_wrapper { position: relative; padding-top: 26px; }
+.quote-box__roller { display: grid; flex: none; place-items: center; width: 42px; height: 42px; padding: 0; border: 1px solid rgb(255 255 255 / .35); border-radius: 12px; background: rgb(255 255 255 / .14); color: #fff; cursor: pointer; transition: background-color .2s ease, transform .2s ease; }
+.quote-box__roller svg { width: 22px; height: 22px; }
+.quote-box__roller:hover { background: rgb(255 255 255 / .26); transform: rotate(-8deg); }
+.quote-box__roller.is-rolling svg { animation: qb-roll .5s cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes qb-roll { 0% { transform: translateX(0) rotate(0); } 40% { transform: translateX(6px) rotate(-14deg); } 100% { transform: none; } }
+.quote-box__swatch { position: absolute; top: 10px; right: 12px; padding: 3px 10px; border-radius: 999px; background: rgb(255 255 255 / .92); color: var(--qb-b); font-size: .72rem; font-weight: 800; letter-spacing: .03em; opacity: 0; transform: translateY(-4px); transition: opacity .25s ease, transform .25s ease; pointer-events: none; }
+.quote-box__swatch.is-shown { opacity: 1; transform: none; }
+.quote-box .gf_page_steps { border-bottom-color: rgb(58 96 230 / .14); }
+.quote-box .gf_step_active .gf_step_number { border-color: transparent; background: linear-gradient(135deg, var(--qb-a), var(--qb-b)); }
+/* Service cards: cool tinted icons, and a paint swipe when picked */
+.quote-box .gcard__box { position: relative; overflow: hidden; border-color: #dbe2f3; background: rgb(255 255 255 / .9); }
+.quote-box .gcard__box > * { position: relative; }
+.quote-box .gcard__box::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgb(64 104 238 / .16), rgb(43 47 154 / .05)); transform: scaleX(0); transform-origin: left; transition: transform .45s cubic-bezier(.2, .7, .2, 1); }
+.quote-box .gcard input:checked + .gcard__box { background: #fff; }
+.quote-box .gcard input:checked + .gcard__box::before { transform: scaleX(1); }
+.quote-box .gcard__icon { color: #fff; }
+.quote-box .gchoice-cards li:nth-child(1) .gcard__icon { background: linear-gradient(135deg, #5b8cff, #3a4fd0); }
+.quote-box .gchoice-cards li:nth-child(2) .gcard__icon { background: linear-gradient(135deg, #2fc4c4, #1b6fa8); }
+.quote-box .gchoice-cards li:nth-child(3) .gcard__icon { background: linear-gradient(135deg, #8b7cf6, #4b3fc0); }
+.quote-box .gchoice-cards li:nth-child(4) .gcard__icon { background: linear-gradient(135deg, #7d93b8, #3f5687); }
+.quote-box .gcard input:checked + .gcard__box .gcard__icon { color: #fff; }
+.quote-box .gcard input:checked + .gcard__box .gcard__tick { background: linear-gradient(135deg, var(--qb-a), var(--qb-b)); border-color: transparent; }
+/* Buttons: gradient with a roller-shine sweep on hover */
+.quote-box .gform_next_button, .quote-box .gform_page_footer button[type="submit"] { position: relative; overflow: hidden; background: linear-gradient(135deg, var(--qb-a), var(--qb-b)); box-shadow: 0 8px 20px rgb(43 47 154 / .28); }
+.quote-box .gform_next_button::after, .quote-box .gform_page_footer button[type="submit"]::after { content: ""; position: absolute; top: 0; bottom: 0; left: -40%; width: 30%; background: linear-gradient(90deg, transparent, rgb(255 255 255 / .35), transparent); transform: skewX(-20deg); transition: left .6s ease; }
+.quote-box .gform_next_button:hover::after, .quote-box .gform_page_footer button[type="submit"]:hover::after { left: 120%; }
+.quote-box .gform_confirmation_message { border-color: rgb(58 96 230 / .2); background: linear-gradient(180deg, #eef2fe, #fff); }
+.quote-box .gform_confirmation_icon { background: linear-gradient(135deg, var(--qb-a), var(--qb-b)); }
+/* Easter egg: paint splats when the request goes in */
+.qb-splat { position: absolute; z-index: 5; width: 26px; height: 26px; pointer-events: none; animation: qb-splat 1.1s cubic-bezier(.2, .7, .2, 1) forwards; }
+@keyframes qb-splat { 0% { opacity: 0; transform: translate(0, 0) scale(.2) rotate(0); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1) rotate(var(--rot)); } }
+@media (prefers-reduced-motion: reduce) { .quote-box__drips path, .quote-box__roller.is-rolling svg, .qb-splat { animation: none; } .quote-box .gcard__box::before { transition: none; } }
