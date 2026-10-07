@@ -1,0 +1,17 @@
+{
+  "src": "assets-src",
+  "out": "assets/img",
+  "logoSvg": "../assets/img/logo.svg",
+  "faviconSvg": "logo-mark.svg",
+  "photos": {
+    "hero": ["stock/hero.jpg", [800, 1280, 1920]],
+    "interior": ["stock/interior.jpg", [640, 1000, 1400]],
+    "exterior": ["stock/exterior.jpg", [640, 1000, 1400]],
+    "commercial": ["stock/commercial.jpg", [640, 1000, 1400]],
+    "color": ["stock/color.jpg", [640, 1000, 1400]],
+    "prep": ["stock/prep.jpg", [640, 1000, 1400], [0, 650, 2000, 1500]],
+    "trim": ["stock/trim.jpg", [640, 1000, 1400]],
+    "cover": ["fb-cover-1920x400.jpg", [1000, 1920]]
+  },
+  "og": { "photo": "stock/hero.jpg", "title": "House painting in Chesapeake, VA", "subtitle": "Family owned since 1994", "phone": "(757) 403-4451", "accent": "#a9bcff" }
+}
